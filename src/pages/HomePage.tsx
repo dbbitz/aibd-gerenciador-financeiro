@@ -1,3 +1,4 @@
+import AddTransactionModal from "@/components/AddTransactionModal";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,13 +9,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function HomePage() {
   const navigate = useNavigate();
+  const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] =
+    useState(false);
 
   const handleViewTransactions = () => {
     navigate("/transactions");
+  };
+
+  const handleSaveTransaction = (
+    transaction: Omit<Transaction, "id" | "createdAt">
+  ) => {
+    console.log(transaction);
+    setIsAddTransactionModalOpen(false);
   };
 
   return (
@@ -100,11 +111,12 @@ function HomePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <Button className="w-full" variant="default">
-                  Adicionar Receita
-                </Button>
-                <Button className="w-full" variant="outline">
-                  Adicionar Despesa
+                <Button
+                  className="w-full"
+                  variant="default"
+                  onClick={() => setIsAddTransactionModalOpen(true)}
+                >
+                  Adicionar Transação
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -174,6 +186,12 @@ function HomePage() {
             </CardFooter>
           </Card>
         </div>
+
+        <AddTransactionModal
+          isOpen={isAddTransactionModalOpen}
+          onClose={() => setIsAddTransactionModalOpen(false)}
+          onSave={handleSaveTransaction}
+        />
 
         {/* Footer */}
         <div className="text-center mt-12">

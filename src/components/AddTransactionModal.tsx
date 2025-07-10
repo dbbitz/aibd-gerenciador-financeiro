@@ -72,9 +72,6 @@ function AddTransactionModal({
       newErrors.categoryId = "Selecione uma categoria";
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = "Descrição é obrigatória";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
