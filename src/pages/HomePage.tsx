@@ -1,5 +1,22 @@
 import AddTransactionModal from "@/components/AddTransactionModal";
+import AddCategoryModal from "@/components/AddCategoryModal";
 import { Button } from "@/components/ui/button";
+
+interface Category {
+  id: string;
+  name: string;
+  type: "income" | "expense";
+}
+
+interface Transaction {
+  id: string;
+  createdAt: Date;
+  type: "income" | "expense";
+  value: number;
+  categoryId: string;
+  categoryName: string;
+  description: string;
+}
 import {
   Card,
   CardContent,
@@ -16,6 +33,12 @@ function HomePage() {
   const navigate = useNavigate();
   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] =
     useState(false);
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+
+  const handleSaveCategory = (category: Omit<Category, "id">) => {
+    console.log(category);
+    setIsAddCategoryModalOpen(false);
+  };
 
   const handleViewTransactions = () => {
     navigate("/transactions");
@@ -118,6 +141,13 @@ function HomePage() {
                 >
                   Adicionar Transação
                 </Button>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setIsAddCategoryModalOpen(true)}
+                >
+                  Adicionar Categoria
+                </Button>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Button className="w-full" variant="secondary">
@@ -191,6 +221,12 @@ function HomePage() {
           isOpen={isAddTransactionModalOpen}
           onClose={() => setIsAddTransactionModalOpen(false)}
           onSave={handleSaveTransaction}
+        />
+
+        <AddCategoryModal
+          isOpen={isAddCategoryModalOpen}
+          onClose={() => setIsAddCategoryModalOpen(false)}
+          onSave={handleSaveCategory}
         />
 
         {/* Footer */}
