@@ -10,7 +10,7 @@ interface Category {
 
 interface Transaction {
   id: string;
-  createdAt: Date;
+  date: Date;
   type: "income" | "expense";
   value: number;
   categoryId: string;
@@ -26,10 +26,254 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Timestamp, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 
 function HomePage() {
+  const [currentTotalBalance, setCurrentTotalBalance] = useState(0);
+  const [lastTotalBalance, setLastTotalBalance] = useState(0);
+  const [currentIncomeTotal, setCurrentIncomeTotal] = useState(0);
+  const [lastIncomeTotal, setLastIncomeTotal] = useState(0);
+  const [currentExpenseTotal, setCurrentExpenseTotal] = useState(0);
+  const [lastExpenseTotal, setLastExpenseTotal] = useState(0);
+  const [thisMonthEconomy, setThisMonthEconomy] = useState(0);
+  const [lastTransactions, setLastTransactions] = useState<Transaction[]>([]);
+  const [lastFiveTransactions, setLastFiveTransactions] = useState<Transaction[]>([]); 
+  const userId = '36M8TEqJbkWcKu8j8XcJ'
+
+  function getStartOfMonth(monthOffset = 0): Timestamp {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1, 0, 0, 0);
+    return Timestamp.fromDate(start);
+  }
+
+  function getCurrentTimestamp(): Timestamp {
+    const now = new Date();
+    return Timestamp.fromDate(now);
+  }
+
+  function calculatePercentage(current: number, previous: number): string {
+    if (previous <= 0) return "N/A";
+
+    const sign = current >= previous ? "+" : "-";
+    const variation = Math.abs((current / previous) - 1);
+
+    return `${sign}${variation.toLocaleString("pt-BR", {
+      style: "percent",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+  
+  useEffect(() => {
+      async function fetchCurrentTotalBalance() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const endDate = getCurrentTimestamp();
+          const constraints = [where('date', '<', endDate)];
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              if( data.type === 'income') 
+                total += data.value;
+              else
+                total -= data.value;
+            }
+          });
+          setCurrentTotalBalance(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchLastTotalBalance() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const endDate = getStartOfMonth();
+          const constraints = [where('date', '<', endDate)];
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              if( data.type === 'income') 
+                total += data.value;
+              else
+                total -= data.value;
+            }
+          });
+          setLastTotalBalance(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchCurrentExpenseTotal() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const constraints = [where('type', '==', 'expense')];
+
+          const endDate = getCurrentTimestamp();
+          const startDate = getStartOfMonth();
+          constraints.push(where('date', '<', endDate));
+          constraints.push(where('date', '>=', startDate));
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              total += data.value;
+            }
+          });
+          setCurrentExpenseTotal(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchLastExpenseTotal() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const constraints = [where('type', '==', 'expense')];
+
+          const endDate = getStartOfMonth();
+          const startDate = getStartOfMonth(-1);
+
+          constraints.push(where('date', '<', endDate));
+          constraints.push(where('date', '>=', startDate));
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              total += data.value;
+            }
+          });
+          setLastExpenseTotal(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchCurrentIncomeTotal() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const constraints = [where('type', '==', 'income')];
+
+          const endDate = getCurrentTimestamp();
+          const startDate = getStartOfMonth();
+          constraints.push(where('date', '<', endDate));
+          constraints.push(where('date', '>=', startDate));
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              total += data.value;
+            }
+          });
+          setCurrentIncomeTotal(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchLastIncomeTotal() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const constraints = [where('type', '==', 'income')];
+
+          const endDate = getStartOfMonth();
+          const startDate = getStartOfMonth(-1);
+
+          constraints.push(where('date', '<', endDate));
+          constraints.push(where('date', '>=', startDate));
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              total += data.value;
+            }
+          });
+          setLastIncomeTotal(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchThisMonthEconomy(){
+        try {
+          const totalLastMonth = lastTotalBalance;
+
+          setThisMonthEconomy(totalLastMonth);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+      async function fetchThisLastTransactions() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const q = query(transactionsRef, orderBy('date', 'desc'));
+          const snapshot = await getDocs(q);
+
+          if (!snapshot.empty) {
+            const transactions = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as Transaction[];
+
+            const lastFive = transactions.slice(0,5);
+
+            setLastFiveTransactions(lastFive)
+            setLastTransactions(transactions);
+          } else {
+            setLastFiveTransactions([])
+            setLastTransactions([]);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+    fetchCurrentTotalBalance()
+    fetchCurrentIncomeTotal()
+    fetchLastIncomeTotal();
+    fetchCurrentExpenseTotal();
+    fetchLastExpenseTotal();
+    fetchLastTotalBalance();
+    fetchThisMonthEconomy();
+    fetchThisLastTransactions();
+  }, [lastTotalBalance]);
   const navigate = useNavigate();
   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] =
     useState(false);
@@ -45,7 +289,7 @@ function HomePage() {
   };
 
   const handleSaveTransaction = (
-    transaction: Omit<Transaction, "id" | "createdAt">
+    transaction: Omit<Transaction, "id" | "date">
   ) => {
     console.log(transaction);
     setIsAddTransactionModalOpen(false);
@@ -72,37 +316,36 @@ function HomePage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">R$ 15.350,00</div>
-              <p className="text-xs text-muted-foreground">
-                +2.5% em relação ao mês passado
-              </p>
+              <div className="text-2xl font-bold">{currentTotalBalance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receitas</CardTitle>
+              <CardTitle className="text-sm font-medium">Receitas do mês</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                R$ 8.500,00
+                {currentIncomeTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
               <p className="text-xs text-muted-foreground">
-                +12% em relação ao mês passado
+                {calculatePercentage(currentIncomeTotal, lastIncomeTotal)}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Despesas</CardTitle>
+              <CardTitle className="text-sm font-medium">Despesas do mês</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">R$ 3.150,00</div>
+              <div className="text-2xl font-bold text-red-600">
+                {currentExpenseTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </div>
               <p className="text-xs text-muted-foreground">
-                -5% em relação ao mês passado
+                {calculatePercentage(currentExpenseTotal, lastExpenseTotal)}
               </p>
             </CardContent>
           </Card>
@@ -114,11 +357,8 @@ function HomePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                R$ 5.350,00
+                {thisMonthEconomy > 0 ? thisMonthEconomy.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ 0.00"}
               </div>
-              <p className="text-xs text-muted-foreground">
-                +8% em relação ao mês passado
-              </p>
             </CardContent>
           </Card>
         </div>
@@ -165,52 +405,55 @@ function HomePage() {
               <CardTitle>Últimas Transações</CardTitle>
               <CardDescription>Suas transações mais recentes</CardDescription>
             </CardHeader>
+
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Salário</p>
-                      <p className="text-sm text-muted-foreground">Hoje</p>
-                    </div>
-                  </div>
-                  <span className="font-medium text-green-600">
-                    +R$ 5.000,00
-                  </span>
-                </div>
+                {lastFiveTransactions.length === 0 ? (
+                  <p className="text-muted-foreground">Nenhuma transação encontrada.</p>
+                ) : (
+                  
+                  lastTransactions.map((tx) => {
+                    const isIncome = tx.type === 'income';
+                    const color = isIncome ? 'green' : 'red';
+                    const prefix = isIncome ? '+' : '-';
+                    const valueFormatted = tx.value.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    });
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Supermercado</p>
-                      <p className="text-sm text-muted-foreground">Ontem</p>
-                    </div>
-                  </div>
-                  <span className="font-medium text-red-600">-R$ 350,00</span>
-                </div>
+                    // const date = tx.date.seconds;
+                    // console.log("date: ", date);
+                    // const diffDays = Math.floor(
+                    //   (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)
+                    // );
+                    // const relativeDate =
+                    //   diffDays === 0
+                    //     ? 'Hoje'
+                    //     : diffDays === 1
+                    //     ? 'Ontem'
+                    //     : `${diffDays} dias atrás`;
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <div>
-                      <p className="font-medium">Conta de Luz</p>
-                      <p className="text-sm text-muted-foreground">
-                        2 dias atrás
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-medium text-red-600">-R$ 120,00</span>
-                </div>
+                    return (
+                      <div key={tx.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 bg-${color}-500 rounded-full`} />
+                          <div>
+                            <p className="font-medium">{tx.description}</p>
+                            <p className="text-sm text-muted-foreground">{10}</p>
+                          </div>
+                        </div>
+                        <span className={`font-medium text-${color}-600`}>
+                          {prefix}{valueFormatted}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
+
             <CardFooter>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleViewTransactions}
-              >
+              <Button variant="outline" className="w-full" onClick={handleViewTransactions}>
                 Ver Todas as Transações
               </Button>
             </CardFooter>

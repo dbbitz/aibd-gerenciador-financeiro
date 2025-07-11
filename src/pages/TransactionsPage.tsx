@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/card";
 import { Plus, ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddTransactionModal from "@/components/AddTransactionModal";
+import { Timestamp, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // Tipos baseados na estrutura da collection
 interface Transaction {
@@ -99,6 +101,63 @@ const mockTransactions: Transaction[] = [
 ];
 
 function TransactionsPage() {
+  const [currentExpenseTotal, setCurrentExpenseTotal] = useState(0);
+
+  function getStartOfMonth(monthOffset = 0): Timestamp {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1, 0, 0, 0);
+    return Timestamp.fromDate(start);
+  }
+
+  function getCurrentTimestamp(): Timestamp {
+    const now = new Date();
+    return Timestamp.fromDate(now);
+  }
+
+  function calculatePercentage(current: number, previous: number): string {
+    if (previous <= 0) return "N/A";
+
+    const sign = current >= previous ? "+" : "-";
+    const variation = Math.abs((current / previous) - 1);
+
+    return `${sign}${variation.toLocaleString("pt-BR", {
+      style: "percent",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+  const userId = '36M8TEqJbkWcKu8j8XcJ'
+  
+  useEffect(() => {
+    async function fetchCurrentExpenseTotal() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+          const constraints = [where('type', '==', 'expense')];
+
+          const endDate = getCurrentTimestamp();
+          const startDate = getStartOfMonth();
+          constraints.push(where('date', '<', endDate));
+          constraints.push(where('date', '>=', startDate));
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              total += data.value;
+            }
+          });
+          setCurrentExpenseTotal(total);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+
+    fetchCurrentExpenseTotal()
+  }, []);
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactions, setTransactions] =
@@ -222,7 +281,7 @@ function TransactionsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(totalExpenses)}
+                {formatCurrency(currentExpenseTotal)}
               </div>
               <p className="text-xs text-muted-foreground">
                 {transactions.filter((t) => t.type === "expense").length}{" "}
