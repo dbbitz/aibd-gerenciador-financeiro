@@ -10,7 +10,7 @@ import { Plus, ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import AddTransactionModal from "@/components/AddTransactionModal";
-import { Timestamp, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { Timestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 // Tipos baseados na estrutura da collection
@@ -101,34 +101,46 @@ const mockTransactions: Transaction[] = [
 ];
 
 function TransactionsPage() {
+  const [currentTotalBalance, setCurrentTotalBalance] = useState(0);
   const [currentExpenseTotal, setCurrentExpenseTotal] = useState(0);
-
-  function getStartOfMonth(monthOffset = 0): Timestamp {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1, 0, 0, 0);
-    return Timestamp.fromDate(start);
-  }
+  const [currentExpenseCount, setCurrentExpenseCount] = useState(0);
+  const [currentIncomeTotal, setCurrentIncomeTotal] = useState(0);
+  const [currentIncomeCount, setCurrentIncomeCount] = useState(0);
 
   function getCurrentTimestamp(): Timestamp {
     const now = new Date();
     return Timestamp.fromDate(now);
   }
 
-  function calculatePercentage(current: number, previous: number): string {
-    if (previous <= 0) return "N/A";
-
-    const sign = current >= previous ? "+" : "-";
-    const variation = Math.abs((current / previous) - 1);
-
-    return `${sign}${variation.toLocaleString("pt-BR", {
-      style: "percent",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  }
   const userId = '36M8TEqJbkWcKu8j8XcJ'
   
   useEffect(() => {
+    async function fetchCurrentTotalBalance() {
+      try {
+        const transactionsRef = collection(db, 'users', userId, 'transactions');
+
+        const endDate = getCurrentTimestamp();
+        const constraints = [where('date', '<', endDate)];
+
+        const q = query(transactionsRef, ...constraints);
+        const snapshot = await getDocs(q);
+
+        let total = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (typeof data.value === 'number') {
+            if( data.type === 'income') 
+              total += data.value;
+            else
+              total -= data.value;
+          }
+        });
+        setCurrentTotalBalance(total);
+      }catch (error) {
+        console.error('Erro ao buscar transações:', error);
+      }
+    }
+
     async function fetchCurrentExpenseTotal() {
         try {
           const transactionsRef = collection(db, 'users', userId, 'transactions');
@@ -136,26 +148,56 @@ function TransactionsPage() {
           const constraints = [where('type', '==', 'expense')];
 
           const endDate = getCurrentTimestamp();
-          const startDate = getStartOfMonth();
           constraints.push(where('date', '<', endDate));
-          constraints.push(where('date', '>=', startDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
 
           let total = 0;
+          let count = 0;
           snapshot.forEach(doc => {
             const data = doc.data();
             if (typeof data.value === 'number') {
               total += data.value;
+              count++;
             }
           });
           setCurrentExpenseTotal(total);
+          setCurrentExpenseCount(count);
         }catch (error) {
           console.error('Erro ao buscar transações:', error);
         }
       }
+      async function fetchCurrentIncomeTotal() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'transactions');
 
+          const constraints = [where('type', '==', 'income')];
+
+          const endDate = getCurrentTimestamp();
+          constraints.push(where('date', '<', endDate));
+
+          const q = query(transactionsRef, ...constraints);
+          const snapshot = await getDocs(q);
+
+          let total = 0;
+          let count = 0;
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (typeof data.value === 'number') {
+              total += data.value;
+              count++;
+            }
+          });
+          setCurrentIncomeTotal(total);
+          setCurrentIncomeCount(count);
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+      }
+    
+    fetchCurrentTotalBalance()
+    fetchCurrentIncomeTotal()
     fetchCurrentExpenseTotal()
   }, []);
   const navigate = useNavigate();
@@ -178,15 +220,15 @@ function TransactionsPage() {
     }).format(date);
   };
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.value, 0);
+  // const totalIncome = transactions
+  //   .filter((t) => t.type === "income")
+  //   .reduce((sum, t) => sum + t.value, 0);
 
-  const totalExpenses = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.value, 0);
+  // const totalExpenses = transactions
+  //   .filter((t) => t.type === "expense")
+  //   .reduce((sum, t) => sum + t.value, 0);
 
-  const balance = totalIncome - totalExpenses;
+  // const balance = totalIncome - totalExpenses;
 
   const handleBack = () => {
     navigate("/");
@@ -243,13 +285,13 @@ function TransactionsPage() {
             <CardContent>
               <div
                 className={`text-2xl font-bold ${
-                  balance >= 0 ? "text-green-600" : "text-red-600"
+                  currentTotalBalance >= 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
-                {formatCurrency(balance)}
+                {formatCurrency(currentTotalBalance)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {balance >= 0 ? "Saldo positivo" : "Saldo negativo"}
+                {currentTotalBalance >= 0 ? "Saldo positivo" : "Saldo negativo"}
               </p>
             </CardContent>
           </Card>
@@ -263,10 +305,10 @@ function TransactionsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(totalIncome)}
+                {formatCurrency(currentIncomeTotal)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {transactions.filter((t) => t.type === "income").length}{" "}
+                {currentIncomeCount + " "}
                 transações
               </p>
             </CardContent>
@@ -284,7 +326,7 @@ function TransactionsPage() {
                 {formatCurrency(currentExpenseTotal)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {transactions.filter((t) => t.type === "expense").length}{" "}
+                {currentExpenseCount + " "}
                 transações
               </p>
             </CardContent>

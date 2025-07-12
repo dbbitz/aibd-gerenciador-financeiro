@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { X, Plus, Minus } from "lucide-react";
+import { collection, query, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface Transaction {
   id: string;
@@ -19,6 +21,12 @@ interface Transaction {
   description: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  type: "income" | "expense";
+}
+
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,24 +34,55 @@ interface AddTransactionModalProps {
 }
 
 // Categorias mockadas
-const categories = [
-  { id: "1", name: "Salário", type: "income" },
-  { id: "2", name: "Alimentação", type: "expense" },
-  { id: "3", name: "Contas", type: "expense" },
-  { id: "4", name: "Freelance", type: "income" },
-  { id: "5", name: "Transporte", type: "expense" },
-  { id: "6", name: "Lazer", type: "expense" },
-  { id: "7", name: "Investimentos", type: "income" },
-  { id: "8", name: "Saúde", type: "expense" },
-  { id: "9", name: "Educação", type: "expense" },
-  { id: "10", name: "Vendas", type: "income" },
-];
+// const categories = [
+//   { id: "1", name: "Salário", type: "income" },
+//   { id: "2", name: "Alimentação", type: "expense" },
+//   { id: "3", name: "Contas", type: "expense" },
+//   { id: "4", name: "Freelance", type: "income" },
+//   { id: "5", name: "Transporte", type: "expense" },
+//   { id: "6", name: "Lazer", type: "expense" },
+//   { id: "7", name: "Investimentos", type: "income" },
+//   { id: "8", name: "Saúde", type: "expense" },
+//   { id: "9", name: "Educação", type: "expense" },
+//   { id: "10", name: "Vendas", type: "income" },
+// ];
 
 function AddTransactionModal({
   isOpen,
   onClose,
   onSave,
 }: AddTransactionModalProps) {
+  const userId = '36M8TEqJbkWcKu8j8XcJ'
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  
+  useEffect(() => {
+      async function fetchCategories() {
+        try {
+          const transactionsRef = collection(db, 'users', userId, 'categories');
+
+          const q = query(transactionsRef);
+          const snapshot = await getDocs(q);
+
+          if (!snapshot.empty) {
+            const categories = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as Category[];
+            setCategories(categories);
+          }else{
+            setCategories([]);
+          }
+          
+        }catch (error) {
+          console.error('Erro ao buscar transações:', error);
+        }
+        
+      }
+      
+      fetchCategories();
+  }, []);
+  
   const [formData, setFormData] = useState({
     type: "expense" as "income" | "expense",
     value: "",
