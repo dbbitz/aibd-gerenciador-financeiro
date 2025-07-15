@@ -4,6 +4,7 @@ import api from "../lib/api";
 export interface Category {
   id: string;
   name: string;
+  type: "income" | "expense";
 }
 
 export interface CreateCategoryData {
