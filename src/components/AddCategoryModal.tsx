@@ -43,7 +43,7 @@ function AddCategoryModal({ isOpen, onClose, onSave }: AddCategoryModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <DialogHeader>
           <DialogTitle>Adicionar Categoria</DialogTitle>
         </DialogHeader>
@@ -56,7 +56,7 @@ function AddCategoryModal({ isOpen, onClose, onSave }: AddCategoryModalProps) {
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
-              className="w-full px-3 py-2 border rounded-md mt-1"
+              className="w-full px-3 py-2 border rounded-md mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 border-gray-300 dark:border-gray-700"
               placeholder="Digite o nome da categoria"
             />
           </div>
@@ -70,7 +70,7 @@ function AddCategoryModal({ isOpen, onClose, onSave }: AddCategoryModalProps) {
                   type: e.target.value as "income" | "expense",
                 }))
               }
-              className="w-full px-3 py-2 border rounded-md mt-1"
+              className="w-full px-3 py-2 border rounded-md mt-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
             >
               <option value="expense">Despesa</option>
               <option value="income">Receita</option>

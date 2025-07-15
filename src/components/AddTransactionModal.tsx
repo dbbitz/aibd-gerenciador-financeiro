@@ -97,7 +97,11 @@ function AddTransactionModal({
       return;
     }
 
-    const category = categories.find((cat) => cat.id === formData.categoryId);
+    // Always allow 'Geral' as a valid category
+    let category = categories.find((cat) => cat.id === formData.categoryId);
+    if (!category && formData.categoryId === 'geral') {
+      category = { id: 'geral', name: 'Geral', type: formData.type };
+    }
 
     if (!category) {
       setErrors({ categoryId: "Categoria inválida" });
@@ -110,6 +114,7 @@ function AddTransactionModal({
       categoryId: formData.categoryId,
       categoryName: category.name,
       description: formData.description.trim(),
+      createdAt: new Date(),
     };
 
     onSave(newTransaction);
@@ -127,15 +132,21 @@ function AddTransactionModal({
     onClose();
   };
 
-  const filteredCategories = categories.filter(
-    (cat) => cat.type === formData.type
-  );
+  // Always include 'Geral' in both types
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const geralCategory = { id: 'geral', name: 'Geral', type: formData.type };
+  const filteredCategories = [
+    geralCategory,
+    ...safeCategories.filter(
+      (cat) => cat.type === formData.type && cat.name !== 'Geral'
+    ),
+  ];
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
             <CardTitle className="text-lg">Adicionar Transação</CardTitle>
@@ -190,8 +201,8 @@ function AddTransactionModal({
                 min="0.01"
                 value={formData.value}
                 onChange={(e) => handleInputChange("value", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.value ? "border-red-500" : "border-gray-300"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${
+                  errors.value ? "border-red-500" : "border-gray-300 dark:border-gray-700"
                 }`}
                 placeholder="0,00"
               />
@@ -208,8 +219,8 @@ function AddTransactionModal({
                 onChange={(e) =>
                   handleInputChange("categoryId", e.target.value)
                 }
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.categoryId ? "border-red-500" : "border-gray-300"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                  errors.categoryId ? "border-red-500" : "border-gray-300 dark:border-gray-700"
                 }`}
               >
                 <option value="">Selecione uma categoria</option>
@@ -232,8 +243,8 @@ function AddTransactionModal({
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                  errors.description ? "border-red-500" : "border-gray-300"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${
+                  errors.description ? "border-red-500" : "border-gray-300 dark:border-gray-700"
                 }`}
                 rows={3}
                 placeholder="Descreva a transação..."

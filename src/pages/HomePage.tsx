@@ -11,6 +11,7 @@ interface Category {
 interface Transaction {
   id: string;
   date: Date;
+  createdAt?: Date | string;
   type: "income" | "expense";
   value: number;
   categoryId: string;
@@ -27,11 +28,11 @@ import {
 } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Timestamp, collection, query, where, getDocs, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useNavigate } from "react-router-dom";
-
 function HomePage() {
+  const navigate = useNavigate();
   const [currentTotalBalance, setCurrentTotalBalance] = useState(0);
   const [lastTotalBalance, setLastTotalBalance] = useState(0);
   const [currentIncomeTotal, setCurrentIncomeTotal] = useState(0);
@@ -291,7 +292,6 @@ function HomePage() {
     fetchThisMonthEconomy();
     fetchThisLastTransactions();
   }, [lastTotalBalance]);
-  const navigate = useNavigate();
   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] =
     useState(false);
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
@@ -426,11 +426,12 @@ function HomePage() {
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Button className="w-full" variant="secondary">
-                  Ver Relatórios
-                </Button>
-                <Button className="w-full" variant="ghost">
-                  Configurações
+                <Button
+                  className="w-full"
+                  variant="secondary"
+                  onClick={() => navigate('/categories')}
+                >
+                  Lista de Categorias
                 </Button>
               </div>
             </CardContent>
@@ -456,26 +457,18 @@ function HomePage() {
                       style: 'currency',
                       currency: 'BRL',
                     });
-
-                    // const date = tx.date.seconds;
-                    // console.log("date: ", date);
-                    // const diffDays = Math.floor(
-                    //   (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)
-                    // );
-                    // const relativeDate =
-                    //   diffDays === 0
-                    //     ? 'Hoje'
-                    //     : diffDays === 1
-                    //     ? 'Ontem'
-                    //     : `${diffDays} dias atrás`;
-
+                    let timeString = '';
+                    if (tx.createdAt) {
+                      const dateObj = typeof tx.createdAt === 'string' ? new Date(tx.createdAt) : tx.createdAt;
+                      timeString = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    }
                     return (
                       <div key={tx.id} className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className={`w-2 h-2 bg-${color}-500 rounded-full`} />
                           <div>
                             <p className="font-medium">{tx.description}</p>
-                            <p className="text-sm text-muted-foreground">{10}</p>
+                            <p className="text-xs text-muted-foreground">{timeString}</p>
                           </div>
                         </div>
                         <span className={`font-medium text-${color}-600`}>
