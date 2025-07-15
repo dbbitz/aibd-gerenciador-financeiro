@@ -31,6 +31,8 @@ interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (transaction: Omit<Transaction, "id" | "createdAt">) => void;
+  categories: Category[];
+  fetchCategories: () => Promise<void>;
 }
 
 // Categorias mockadas
@@ -51,37 +53,9 @@ function AddTransactionModal({
   isOpen,
   onClose,
   onSave,
+  categories,
+  fetchCategories,
 }: AddTransactionModalProps) {
-  const userId = '36M8TEqJbkWcKu8j8XcJ'
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  
-  useEffect(() => {
-      async function fetchCategories() {
-        try {
-          const transactionsRef = collection(db, 'users', userId, 'categories');
-
-          const q = query(transactionsRef);
-          const snapshot = await getDocs(q);
-
-          if (!snapshot.empty) {
-            const categories = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as Category[];
-            setCategories(categories);
-          }else{
-            setCategories([]);
-          }
-          
-        }catch (error) {
-          console.error('Erro ao buscar transações:', error);
-        }
-        
-      }
-      
-      fetchCategories();
-  }, []);
   
   const [formData, setFormData] = useState({
     type: "expense" as "income" | "expense",

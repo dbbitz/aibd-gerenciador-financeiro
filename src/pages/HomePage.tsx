@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/card";
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Timestamp, collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { Timestamp, collection, query, where, getDocs, orderBy, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -40,8 +40,25 @@ function HomePage() {
   const [lastExpenseTotal, setLastExpenseTotal] = useState(0);
   const [thisMonthEconomy, setThisMonthEconomy] = useState(0);
   const [lastTransactions, setLastTransactions] = useState<Transaction[]>([]);
-  const [lastFiveTransactions, setLastFiveTransactions] = useState<Transaction[]>([]); 
-  const userId = '36M8TEqJbkWcKu8j8XcJ'
+  const [lastFiveTransactions, setLastFiveTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryMessage, setCategoryMessage] = useState<string | null>(null);
+  const userId = '36M8TEqJbkWcKu8j8XcJ';
+  // Fetch categories from Firestore
+  const fetchCategories = async () => {
+    try {
+      const categoriesRef = collection(db, 'users', userId, 'categories');
+      const snapshot = await getDocs(categoriesRef);
+      const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Category[];
+      setCategories(cats);
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   function getStartOfMonth(monthOffset = 0): Timestamp {
     const now = new Date();
@@ -279,8 +296,27 @@ function HomePage() {
     useState(false);
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
 
-  const handleSaveCategory = (category: Omit<Category, "id">) => {
-    console.log(category);
+  const handleSaveCategory = async (category: Omit<Category, "id">) => {
+    // Check for duplicate (case-insensitive, same name and type)
+    const isDuplicate = categories.some(
+      c => c.name.trim().toLowerCase() === category.name.trim().toLowerCase() && c.type === category.type
+    );
+    if (isDuplicate) {
+      setCategoryMessage("Categoria já criada!");
+      setTimeout(() => setCategoryMessage(null), 2500);
+      return;
+    }
+    try {
+      const categoriesRef = collection(db, 'users', userId, 'categories');
+      await addDoc(categoriesRef, category);
+      setCategoryMessage("Categoria criada com sucesso!");
+      setTimeout(() => setCategoryMessage(null), 2500);
+      await fetchCategories(); // Refresh dropdown
+    } catch (error) {
+      setCategoryMessage("Erro ao salvar categoria!");
+      setTimeout(() => setCategoryMessage(null), 2500);
+      console.error('Erro ao salvar categoria:', error);
+    }
     setIsAddCategoryModalOpen(false);
   };
 
@@ -464,13 +500,22 @@ function HomePage() {
           isOpen={isAddTransactionModalOpen}
           onClose={() => setIsAddTransactionModalOpen(false)}
           onSave={handleSaveTransaction}
+          categories={categories}
+          fetchCategories={fetchCategories}
         />
 
+
+        {/* Category Modal and Message */}
         <AddCategoryModal
           isOpen={isAddCategoryModalOpen}
           onClose={() => setIsAddCategoryModalOpen(false)}
           onSave={handleSaveCategory}
         />
+        {categoryMessage && (
+          <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg px-6 py-3 rounded text-center text-black font-semibold">
+            {categoryMessage}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-12">
