@@ -6,14 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Plus, ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, ArrowLeft, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useCategories } from "@/hooks/useCategories";
-import AddTransactionModal from "@/components/AddTransactionModal";
-import { Timestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { Timestamp, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import AddTransactionModal from "@/components/AddTransactionModal";
+
 
 // Tipos baseados na estrutura da collection
 interface Transaction {
@@ -28,8 +28,30 @@ interface Transaction {
 
 
 function TransactionsPage() {
-  // Categories for AddTransactionModal
-  const { categories, fetchCategories } = useCategories();
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  // Categories for AddTransactionModal (fetch directly from Firestore)
+  const [categories, setCategories] = useState<{ id: string; name: string; type: "income" | "expense" }[]>([]);
+  const [transactionMessage, setTransactionMessage] = useState<string | null>(null);
+
+  const userId = '36M8TEqJbkWcKu8j8XcJ';
+
+  const fetchCategories = async () => {
+    try {
+      const categoriesRef = collection(db, 'users', userId, 'categories');
+      const snapshot = await getDocs(categoriesRef);
+      const cats = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          type: data.type,
+        };
+      });
+      setCategories(cats);
+    } catch (error) {
+      console.error('Erro ao buscar categorias:', error);
+    }
+  };
   const [currentTotalBalance, setCurrentTotalBalance] = useState(0);
   const [currentExpenseTotal, setCurrentExpenseTotal] = useState(0);
   const [currentExpenseCount, setCurrentExpenseCount] = useState(0);
@@ -41,7 +63,10 @@ function TransactionsPage() {
     return Timestamp.fromDate(now);
   }
 
-  const userId = '36M8TEqJbkWcKu8j8XcJ'
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
   
   useEffect(() => {
     async function fetchCurrentTotalBalance() {
@@ -49,7 +74,7 @@ function TransactionsPage() {
         const transactionsRef = collection(db, 'users', userId, 'transactions');
 
         const endDate = getCurrentTimestamp();
-        const constraints = [where('date', '<', endDate)];
+        const constraints = [where('createdAt', '<', endDate)];
 
         const q = query(transactionsRef, ...constraints);
         const snapshot = await getDocs(q);
@@ -77,7 +102,7 @@ function TransactionsPage() {
           const constraints = [where('type', '==', 'expense')];
 
           const endDate = getCurrentTimestamp();
-          constraints.push(where('date', '<', endDate));
+          constraints.push(where('createdAt', '<', endDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -104,7 +129,7 @@ function TransactionsPage() {
           const constraints = [where('type', '==', 'income')];
 
           const endDate = getCurrentTimestamp();
-          constraints.push(where('date', '<', endDate));
+          constraints.push(where('createdAt', '<', endDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -132,8 +157,32 @@ function TransactionsPage() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { transactions, loading, error, fetchTransactions } = useTransactions();
-  // Fetch all transactions on mount
+
+  // Filtros de transação
+  const [filterCategory, setFilterCategory] = useState<string | undefined>(undefined);
+  const [filterType, setFilterType] = useState<"income" | "expense" | "" | undefined>("");
+  const [filterStartDate, setFilterStartDate] = useState<string>("");
+  const [filterEndDate, setFilterEndDate] = useState<string>("");
+
+  const { transactions, loading, error, fetchTransactions, deleteTransaction } = useTransactions();
+
+  // Função para buscar transações com filtros
+  // Função para buscar transações com filtros
+  const handleFilter = async (params?: {
+    categoryId?: string;
+    type?: "income" | "expense";
+    startDate?: Date;
+    endDate?: Date;
+  }) => {
+    await fetchTransactions({
+      categoryId: typeof params?.categoryId !== 'undefined' ? params.categoryId : (filterCategory || undefined),
+      type: typeof params?.type !== 'undefined' ? params.type : (filterType ? filterType as "income" | "expense" : undefined),
+      startDate: typeof params?.startDate !== 'undefined' ? params.startDate : (filterStartDate ? new Date(filterStartDate) : undefined),
+      endDate: typeof params?.endDate !== 'undefined' ? params.endDate : (filterEndDate ? new Date(filterEndDate) : undefined),
+    });
+  };
+
+  // Buscar todas as transações ao montar
   useEffect(() => {
     fetchTransactions();
   }, []);
@@ -173,10 +222,24 @@ function TransactionsPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveTransaction = async () => {
-    // Optionally, you could call createTransaction from the hook here if you want to add immediately
-    // For now, just refetch all transactions after adding
-    await fetchTransactions();
+  const handleSaveTransaction = async (
+    transaction: Omit<Transaction, "id" | "createdAt">
+  ) => {
+    try {
+      const transactionsRef = collection(db, 'users', userId, 'transactions');
+      await addDoc(transactionsRef, {
+        ...transaction,
+        createdAt: new Date(),
+      });
+      setTransactionMessage("Transação criada com sucesso!");
+      setTimeout(() => setTransactionMessage(null), 2500);
+      await fetchTransactions();
+    } catch (error) {
+      setTransactionMessage("Erro ao salvar transação!");
+      setTimeout(() => setTransactionMessage(null), 2500);
+      console.error('Erro ao salvar transação:', error);
+    }
+    setIsModalOpen(false);
   };
 
   return (
@@ -262,6 +325,91 @@ function TransactionsPage() {
           </Card>
         </div>
 
+        {/* Filtros */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Filtrar Transações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div>
+                <label className="block text-xs mb-1">Categoria</label>
+                <select
+                  className="border rounded px-2 py-1 min-w-[120px] bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-600"
+                  value={filterCategory || ""}
+                  onChange={e => {
+                    const value = e.target.value || undefined;
+                    setFilterCategory(value);
+                    handleFilter({ categoryId: value });
+                  }}
+                >
+                  <option value="">Todas</option>
+                  {categories
+                    .filter(cat => !filterType || cat.type === filterType)
+                    .map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1">Tipo</label>
+                <select
+                  className="border rounded px-2 py-1 min-w-[120px] bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-600"
+                  value={filterType}
+                  onChange={e => {
+                    const value = e.target.value as "income" | "expense" | "";
+                    setFilterType(value);
+                    // Limpa categoria se não for compatível
+                    setFilterCategory(prev => {
+                      if (!value) return prev;
+                      const cat = categories.find(c => c.id === prev);
+                      if (cat && cat.type !== value) return "";
+                      return prev;
+                    });
+                    handleFilter({ type: value ? value as "income" | "expense" : undefined });
+                  }}
+                >
+                  <option value="">Todos</option>
+                  <option value="income">Receita</option>
+                  <option value="expense">Despesa</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1">Data Inicial</label>
+                <input
+                  type="date"
+                  className="border rounded px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-600"
+                  value={filterStartDate}
+                  onChange={e => {
+                    setFilterStartDate(e.target.value);
+                    handleFilter({ startDate: e.target.value ? new Date(e.target.value) : undefined });
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1">Data Final</label>
+                <input
+                  type="date"
+                  className="border rounded px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-600"
+                  value={filterEndDate}
+                  onChange={e => {
+                    setFilterEndDate(e.target.value);
+                    handleFilter({ endDate: e.target.value ? new Date(e.target.value) : undefined });
+                  }}
+                />
+              </div>
+              {/* Botão de filtrar removido, pois agora filtra automaticamente */}
+              <Button onClick={() => {
+                setFilterCategory("");
+                setFilterType("");
+                setFilterStartDate("");
+                setFilterEndDate("");
+                fetchTransactions();
+              }} variant="ghost">Limpar</Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Lista de Transações */}
         <Card>
           <CardHeader>
@@ -327,7 +475,7 @@ function TransactionsPage() {
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="flex flex-col items-end gap-2 min-w-[110px]">
                               <p
                                 className={`font-bold text-lg ${
                                   transaction.type === "income"
@@ -338,9 +486,27 @@ function TransactionsPage() {
                                 {transaction.type === "income" ? "+" : "-"}
                                 {formatCurrency(transaction.value)}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                ID: {transaction.id}
-                              </p>
+                              {/* <p className="text-xs text-gray-500">ID: {transaction.id}</p> */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900"
+                                onClick={() => setConfirmDeleteId(transaction.id)}
+                                aria-label="Excluir transação"
+                              >
+                                <Trash2 />
+                              </Button>
+                              {confirmDeleteId === transaction.id && (
+                                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+                                  <div className="bg-white dark:bg-gray-900 p-6 rounded shadow-lg text-center text-gray-900 dark:text-gray-100">
+                                    <p className="mb-4">Tem certeza que deseja excluir a transação de <b>{transaction.categoryName}</b>?</p>
+                                    <div className="flex gap-4 justify-center">
+                                      <Button variant="destructive" onClick={async () => { await deleteTransaction(transaction.id); setConfirmDeleteId(null); }}>Excluir</Button>
+                                      <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Cancelar</Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -370,6 +536,11 @@ function TransactionsPage() {
         categories={categories}
         fetchCategories={fetchCategories}
       />
+      {transactionMessage && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-blue-500 text-white px-6 py-3 rounded shadow-lg animate-fade-in-out text-center font-semibold">
+          {transactionMessage}
+        </div>
+      )}
     </div>
   );
 }

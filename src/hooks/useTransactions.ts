@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import api from "../lib/api";
+import { db } from "../lib/firebase";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 export interface Transaction {
   id: string;
@@ -30,91 +31,86 @@ export const useTransactions = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Buscar todas as transações
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get("/transactions");
-      setTransactions(response.data);
-    } catch (err) {
-      setError("Erro ao buscar transações");
-      console.error("Erro ao buscar transações:", err);
-    } finally {
-      setLoading(false);
+// Buscar todas as transações, com suporte a filtros (apenas client-side)
+const fetchTransactions = async (filters?: {
+  categoryId?: string;
+  type?: "income" | "expense";
+  startDate?: Date;
+  endDate?: Date;
+}) => {
+  try {
+    setLoading(true);
+    setError(null);
+    const userId = '36M8TEqJbkWcKu8j8XcJ';
+    const transactionsRef = collection(db, 'users', userId, 'transactions');
+    const { query, orderBy, getDocs } = await import("firebase/firestore");
+    // Busca tudo do Firestore, filtra no client
+    const q = query(transactionsRef, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    let txs: Transaction[] = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : new Date(),
+        type: data.type,
+        value: data.value,
+        categoryId: data.categoryId,
+        categoryName: data.categoryName || '',
+        description: data.description || '',
+      };
+    });
+    // Filtros client-side
+    if (filters) {
+      if (filters.categoryId) {
+        txs = txs.filter(t => t.categoryId === filters.categoryId);
+      }
+      if (filters.type) {
+        txs = txs.filter(t => t.type === filters.type);
+      }
+      if (filters.startDate) {
+        txs = txs.filter(t => t.createdAt >= filters.startDate!);
+      }
+      if (filters.endDate) {
+        txs = txs.filter(t => t.createdAt <= filters.endDate!);
+      }
     }
-  };
+    setTransactions(txs);
+  } catch (err) {
+    setError("Erro ao buscar transações");
+    console.error("Erro ao buscar transações:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Criar nova transação
+  // Função não implementada sem backend
   const createTransaction = async (data: CreateTransactionData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.post("/transactions", data);
-      setTransactions((prev) => [...prev, response.data]);
-      return response.data;
-    } catch (err) {
-      setError("Erro ao criar transação");
-      console.error("Erro ao criar transação:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    throw new Error("createTransaction não implementado para frontend puro");
   };
 
   // Atualizar transação
+  // Função não implementada sem backend
   const updateTransaction = async (id: string, data: UpdateTransactionData) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.put(`/transactions/${id}`, data);
-      setTransactions((prev) =>
-        prev.map((transaction) =>
-          transaction.id === id ? response.data : transaction
-        )
-      );
-      return response.data;
-    } catch (err) {
-      setError("Erro ao atualizar transação");
-      console.error("Erro ao atualizar transação:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    throw new Error("updateTransaction não implementado para frontend puro");
   };
 
-  // Deletar transação
+  // Deletar transação diretamente do Firestore
   const deleteTransaction = async (id: string) => {
     try {
-      setLoading(true);
-      setError(null);
-      await api.delete(`/transactions/${id}`);
-      setTransactions((prev) =>
-        prev.filter((transaction) => transaction.id !== id)
-      );
-    } catch (err) {
+      const userId = '36M8TEqJbkWcKu8j8XcJ';
+      await deleteDoc(doc(db, 'users', userId, 'transactions', id));
+      await fetchTransactions();
+    } catch (error) {
       setError("Erro ao deletar transação");
-      console.error("Erro ao deletar transação:", err);
-      throw err;
-    } finally {
-      setLoading(false);
+      console.error("Erro ao deletar transação:", error);
     }
   };
 
   // Buscar transação por ID
+  // Função não implementada sem backend
   const getTransactionById = async (id: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get(`/transactions/${id}`);
-      return response.data;
-    } catch (err) {
-      setError("Erro ao buscar transação");
-      console.error("Erro ao buscar transação:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    throw new Error("getTransactionById não implementado para frontend puro");
   };
 
   return {

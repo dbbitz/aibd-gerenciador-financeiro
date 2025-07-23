@@ -40,10 +40,12 @@ function HomePage() {
   const [currentExpenseTotal, setCurrentExpenseTotal] = useState(0);
   const [lastExpenseTotal, setLastExpenseTotal] = useState(0);
   const [thisMonthEconomy, setThisMonthEconomy] = useState(0);
-  const [lastTransactions, setLastTransactions] = useState<Transaction[]>([]);
+  // Últimas 5 transações mais recentes
+  // (A lista completa não é mais usada na interface)
   const [lastFiveTransactions, setLastFiveTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryMessage, setCategoryMessage] = useState<string | null>(null);
+  const [transactionMessage, setTransactionMessage] = useState<string | null>(null);
   const userId = '36M8TEqJbkWcKu8j8XcJ';
   // Fetch categories from Firestore
   const fetchCategories = async () => {
@@ -91,7 +93,7 @@ function HomePage() {
           const transactionsRef = collection(db, 'users', userId, 'transactions');
 
           const endDate = getCurrentTimestamp();
-          const constraints = [where('date', '<', endDate)];
+          const constraints = [where('createdAt', '<', endDate)];
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -117,7 +119,7 @@ function HomePage() {
           const transactionsRef = collection(db, 'users', userId, 'transactions');
 
           const endDate = getStartOfMonth();
-          const constraints = [where('date', '<', endDate)];
+          const constraints = [where('createdAt', '<', endDate)];
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -146,8 +148,8 @@ function HomePage() {
 
           const endDate = getCurrentTimestamp();
           const startDate = getStartOfMonth();
-          constraints.push(where('date', '<', endDate));
-          constraints.push(where('date', '>=', startDate));
+          constraints.push(where('createdAt', '<', endDate));
+          constraints.push(where('createdAt', '>=', startDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -174,8 +176,8 @@ function HomePage() {
           const endDate = getStartOfMonth();
           const startDate = getStartOfMonth(-1);
 
-          constraints.push(where('date', '<', endDate));
-          constraints.push(where('date', '>=', startDate));
+          constraints.push(where('createdAt', '<', endDate));
+          constraints.push(where('createdAt', '>=', startDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -201,8 +203,8 @@ function HomePage() {
 
           const endDate = getCurrentTimestamp();
           const startDate = getStartOfMonth();
-          constraints.push(where('date', '<', endDate));
-          constraints.push(where('date', '>=', startDate));
+          constraints.push(where('createdAt', '<', endDate));
+          constraints.push(where('createdAt', '>=', startDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -229,8 +231,8 @@ function HomePage() {
           const endDate = getStartOfMonth();
           const startDate = getStartOfMonth(-1);
 
-          constraints.push(where('date', '<', endDate));
-          constraints.push(where('date', '>=', startDate));
+          constraints.push(where('createdAt', '<', endDate));
+          constraints.push(where('createdAt', '>=', startDate));
 
           const q = query(transactionsRef, ...constraints);
           const snapshot = await getDocs(q);
@@ -261,8 +263,8 @@ function HomePage() {
       async function fetchThisLastTransactions() {
         try {
           const transactionsRef = collection(db, 'users', userId, 'transactions');
-
-          const q = query(transactionsRef, orderBy('date', 'desc'));
+          // Busca as transações ordenando por createdAt (mais recentes primeiro)
+          const q = query(transactionsRef, orderBy('createdAt', 'desc'));
           const snapshot = await getDocs(q);
 
           if (!snapshot.empty) {
@@ -271,13 +273,10 @@ function HomePage() {
               ...doc.data(),
             })) as Transaction[];
 
-            const lastFive = transactions.slice(0,5);
-
-            setLastFiveTransactions(lastFive)
-            setLastTransactions(transactions);
+            const lastFive = transactions.slice(0, 5);
+            setLastFiveTransactions(lastFive);
           } else {
-            setLastFiveTransactions([])
-            setLastTransactions([]);
+            setLastFiveTransactions([]);
           }
         } catch (error) {
           console.error('Erro ao buscar transações:', error);
@@ -324,11 +323,26 @@ function HomePage() {
     navigate("/transactions");
   };
 
-  const handleSaveTransaction = (
+  const handleSaveTransaction = async (
     transaction: Omit<Transaction, "id" | "date">
   ) => {
-    console.log(transaction);
-    setIsAddTransactionModalOpen(false);
+    try {
+      const transactionsRef = collection(db, 'users', userId, 'transactions');
+      await addDoc(transactionsRef, {
+        ...transaction,
+        createdAt: new Date(),
+      });
+      setTransactionMessage("Transação criada com sucesso!");
+      setTimeout(() => setTransactionMessage(null), 2500);
+      // @ts-ignore
+      fetchThisLastTransactions();
+      setIsAddTransactionModalOpen(false);
+    } catch (error) {
+      setTransactionMessage("Erro ao salvar transação!");
+      setTimeout(() => setTransactionMessage(null), 2500);
+      console.error('Erro ao salvar transação:', error);
+      // Do not close the modal on error
+    }
   };
 
   return (
@@ -448,8 +462,7 @@ function HomePage() {
                 {lastFiveTransactions.length === 0 ? (
                   <p className="text-muted-foreground">Nenhuma transação encontrada.</p>
                 ) : (
-                  
-                  lastTransactions.map((tx) => {
+                  lastFiveTransactions.map((tx) => {
                     const isIncome = tx.type === 'income';
                     const color = isIncome ? 'green' : 'red';
                     const prefix = isIncome ? '+' : '-';
@@ -457,19 +470,11 @@ function HomePage() {
                       style: 'currency',
                       currency: 'BRL',
                     });
-                    let timeString = '';
-                    if (tx.createdAt) {
-                      const dateObj = typeof tx.createdAt === 'string' ? new Date(tx.createdAt) : tx.createdAt;
-                      timeString = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    }
                     return (
                       <div key={tx.id} className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className={`w-2 h-2 bg-${color}-500 rounded-full`} />
-                          <div>
-                            <p className="font-medium">{tx.description}</p>
-                            <p className="text-xs text-muted-foreground">{timeString}</p>
-                          </div>
+                          <p className="font-medium">{tx.description}</p>
                         </div>
                         <span className={`font-medium text-${color}-600`}>
                           {prefix}{valueFormatted}
@@ -507,6 +512,11 @@ function HomePage() {
         {categoryMessage && (
           <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg px-6 py-3 rounded text-center text-black font-semibold">
             {categoryMessage}
+          </div>
+        )}
+        {transactionMessage && (
+          <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg px-6 py-3 rounded text-center text-black font-semibold">
+            {transactionMessage}
           </div>
         )}
 
