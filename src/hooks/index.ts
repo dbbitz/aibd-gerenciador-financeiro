@@ -2,6 +2,7 @@
 export { useTransactions } from "./useTransactions";
 export { useCategories } from "./useCategories";
 export { useApi } from "./useApi";
+export { useAuth } from "./useAuth";
 
 // Re-exportação dos tipos para facilitar o uso
 export type {

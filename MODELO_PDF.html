@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modelo PDF - Relatório de Visita Técnica</title>
+    <style>
+      /* ===== CONFIGURAÇÕES GERAIS ===== */
+      body {
+        font-family: "Verdana, Geneva, Tahoma, sans-serif";
+        font-size: 11px;
+        line-height: 1.3;
+        background-color: white;
+        color: #333333;
+        margin: 0;
+        padding: 0;
+        width: 800px;
+        margin: 0 auto;
+      }
+
+      /* ===== CORES DO TEMA ===== */
+      :root {
+        --header-footer: #fecc00; /* Amarelo para cabeçalho/rodapé */
+        --text-dark: #333333; /* Cinza escuro para texto */
+        --text-medium: #666666; /* Cinza médio para texto secundário */
+        --text-light: #999999; /* Cinza claro para texto leve */
+        --title-color: #595959; /* Cinza escuro para títulos */
+        --bg-light: #f5f5f5; /* Cinza muito claro para fundos */
+        --bg-lighter: #fafafa; /* Cinza ainda mais claro */
+        --border-color: #dddddd; /* Cinza para bordas */
+        --table-border: #e8e8e8; /* Cinza bem claro para bordas de tabela */
+        --table-header: #eeeeee; /* Cinza para cabeçalhos de tabela */
+      }
+
+      /* ===== CABEÇALHO ===== */
+      .header {
+        background-color: var(--header-footer);
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      /* ===== TÍTULO PRINCIPAL ===== */
+      .main-title {
+        text-align: left;
+        margin-bottom: 25px;
+        padding: 0 30px;
+      }
+
+      .main-title h1 {
+        font-size: 24px;
+        margin-bottom: 0;
+        color: var(--title-color);
+        font-weight: bold;
+      }
+
+      /* ===== SEÇÕES ===== */
+      .section {
+        margin-bottom: 20px;
+        padding: 0 30px;
+      }
+
+      .section h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+        padding-bottom: 5px;
+        color: var(--title-color);
+        font-weight: bold;
+      }
+
+      /* ===== TABELAS ===== */
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: transparent;
+        border: 1px solid var(--table-border);
+      }
+
+      .table tr {
+        background-color: transparent;
+      }
+
+      .table td {
+        padding: 0 8px;
+        color: var(--text-dark);
+        font-size: 11px;
+        border: 1px solid var(--table-border);
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+      }
+
+      .table td:first-child {
+        font-weight: bold;
+        width: 30%;
+        color: var(--text-dark);
+        background-color: transparent;
+      }
+
+      /* ===== SEÇÕES ESPECIAIS ===== */
+      .problems {
+        margin-bottom: 15px;
+      }
+
+      .problems h3 {
+        font-size: 14px;
+        margin-bottom: 6px;
+        color: var(--title-color);
+        font-weight: bold;
+      }
+
+      .problems .content {
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-light);
+        border-radius: 3px;
+        min-height: 50px;
+        color: var(--text-dark);
+        font-size: 11px;
+      }
+
+      .recommendations {
+        margin-bottom: 15px;
+      }
+
+      .recommendations h3 {
+        font-size: 14px;
+        margin-bottom: 6px;
+        color: var(--title-color);
+        font-weight: bold;
+      }
+
+      .recommendations .content {
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-light);
+        border-radius: 3px;
+        min-height: 50px;
+        color: var(--text-dark);
+        font-size: 11px;
+      }
+
+      /* ===== PÁGINA DE ANEXOS ===== */
+      .attachments-page {
+        page-break-before: always;
+        margin-top: 0;
+      }
+
+      .attachments-header {
+        background-color: var(--header-footer);
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .attachments-title {
+        text-align: left;
+        margin-bottom: 25px;
+        padding: 0 30px;
+      }
+
+      .attachments-content {
+        padding: 0 30px;
+      }
+
+      .attachments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .attachment-item {
+        text-align: center;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        padding: 15px;
+        background-color: var(--bg-lighter);
+      }
+
+      .attachment-item img {
+        max-width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 2px;
+      }
+
+      .attachment-item p {
+        margin-top: 10px;
+        font-size: 11px;
+        color: var(--text-dark);
+        font-weight: bold;
+      }
+
+      /* ===== UTILITÁRIOS ===== */
+      .highlight {
+        font-weight: bold;
+        color: var(--text-dark);
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      /* ===== RESPONSIVIDADE ===== */
+      @media print {
+        body {
+          width: 100%;
+          margin: 0;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- CABEÇALHO -->
+    <div class="header"></div>
+
+    <!-- TÍTULO PRINCIPAL -->
+    <div class="main-title">
+      <h1>RELATÓRIO DE VISITA TÉCNICA SEMANAL</h1>
+    </div>
+
+    <!-- DADOS DO CLIENTE -->
+    <div class="section">
+      <h2>DADOS DO CLIENTE</h2>
+      <table class="table">
+        <tr>
+          <td>Cliente:</td>
+          <td>RKS MATRIZ</td>
+        </tr>
+        <tr>
+          <td>Local:</td>
+          <td>Rua das Flores, 123 - Centro</td>
+        </tr>
+        <tr>
+          <td>Data da Visita:</td>
+          <td>24/07/2025</td>
+        </tr>
+        <tr>
+          <td>Período:</td>
+          <td>Manhã</td>
+        </tr>
+        <tr>
+          <td>Técnico Responsável:</td>
+          <td>João Silva</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- EQUIPAMENTOS -->
+    <div class="section">
+      <h2>EQUIPAMENTOS</h2>
+      <table class="table">
+        <tr>
+          <td>Total de Câmeras:</td>
+          <td>8</td>
+        </tr>
+        <tr>
+          <td>Câmeras Funcionando:</td>
+          <td>7</td>
+        </tr>
+        <tr>
+          <td>Percentual de Funcionamento:</td>
+          <td class="highlight">87%</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- STATUS DOS EQUIPAMENTOS -->
+    <div class="section">
+      <h2>STATUS DOS EQUIPAMENTOS</h2>
+      <table class="table">
+        <tr>
+          <td>Limpeza das Câmeras:</td>
+          <td>Sim</td>
+        </tr>
+        <tr>
+          <td>Status do HD:</td>
+          <td>Funcionando 100%</td>
+        </tr>
+        <tr>
+          <td>Status do Sistema:</td>
+          <td>Funcionando 100%</td>
+        </tr>
+        <tr>
+          <td>Armazenamento (dias):</td>
+          <td>30 dias</td>
+        </tr>
+        <tr>
+          <td>Teste de HD:</td>
+          <td>Sim</td>
+        </tr>
+        <tr>
+          <td>Teste de Gravações:</td>
+          <td>Sim</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- ANÁLISE TÉCNICA -->
+    <div class="section">
+      <h2>ANÁLISE TÉCNICA</h2>
+
+      <div class="problems">
+        <h3>Problemas Identificados:</h3>
+        <div class="content">
+          Câmera 3 apresentando falhas intermitentes. Necessário verificar
+          conexões e possível substituição do cabo.
+        </div>
+      </div>
+
+      <div class="recommendations">
+        <h3>Recomendações:</h3>
+        <div class="content">
+          Substituir cabo da câmera 3 na próxima visita. Manter monitoramento
+          das demais câmeras. Agendar nova visita em 15 dias.
+        </div>
+      </div>
+    </div>
+
+    <!-- PÁGINA DE ANEXOS -->
+    <div class="attachments-page">
+      <!-- CABEÇALHO DOS ANEXOS -->
+      <div class="attachments-header"></div>
+
+      <!-- TÍTULO DOS ANEXOS -->
+      <div class="attachments-title">
+        <h1>ANEXOS FOTOGRÁFICOS</h1>
+      </div>
+
+      <div class="attachments-content">
+        <div class="attachments-grid">
+          <div class="attachment-item">
+            <img
+              src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbSBkZSB0ZXN0ZTwvdGV4dD4KPC9zdmc+"
+              alt="Anexo 1"
+            />
+            <p>Anexo 1</p>
+          </div>
+          <div class="attachment-item">
+            <img
+              src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbSBkZSB0ZXN0ZTwvdGV4dD4KPC9zdmc+"
+              alt="Anexo 2"
+            />
+            <p>Anexo 2</p>
+          </div>
+          <div class="attachment-item">
+            <img
+              src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbSBkZSB0ZXN0ZTwvdGV4dD4KPC9zdmc+"
+              alt="Anexo 3"
+            />
+            <p>Anexo 3</p>
+          </div>
+          <div class="attachment-item">
+            <img
+              src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlbSBkZSB0ZXN0ZTwvdGV4dD4KPC9zdmc+"
+              alt="Anexo 4"
+            />
+            <p>Anexo 4</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -65,5 +65,28 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Montserrat", sans-serif;
+  }
+}
+
+/* Custom styles for landing page */
+@layer components {
+  .landing-page {
+    font-family: "Montserrat", sans-serif;
+  }
+
+  .landing-page h1,
+  .landing-page h2,
+  .landing-page h3,
+  .landing-page h4,
+  .landing-page h5,
+  .landing-page h6 {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+  }
+
+  .landing-page p {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 400;
   }
 }
