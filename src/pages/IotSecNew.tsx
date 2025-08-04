@@ -1,5 +1,4 @@
-import React, { useState, useRef } from "react";
-import { Card, CardHeader } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,8 +12,6 @@ import {
 import { downloadRelatorio } from "@/lib/generateReport";
 import { testImageProcessing } from "@/lib/testImages";
 import { generatePDFRelatorio } from "@/lib/generatePDF";
-import { generateEntregaPDF } from "@/lib/generateEntregaPDF";
-import SignatureCanvas from "react-signature-canvas";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
@@ -32,25 +29,9 @@ export default function IotSecNew() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [isOpenEntrega, setIsOpenEntrega] = useState(false);
-  const [isOpenOrcamento, setIsOpenOrcamento] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTestButtons, setShowTestButtons] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [selectedFilesEntrega, setSelectedFilesEntrega] = useState<File[]>([]);
-  const [selectedFilesOrcamento, setSelectedFilesOrcamento] = useState<File[]>(
-    []
-  );
-
-  // Estados para o sistema de passos
-  const [currentStep, setCurrentStep] = useState(1);
-  const [clienteAssinatura, setClienteAssinatura] = useState<string>("");
-  const [tecnicoAssinatura, setTecnicoAssinatura] = useState<string>("");
-  const [concordaGarantia, setConcordaGarantia] = useState(false);
-
-  // Refs para os canvas de assinatura
-  const clienteSignatureRef = useRef<SignatureCanvas>(null);
-  const tecnicoSignatureRef = useRef<SignatureCanvas>(null);
 
   // Função para obter a data atual no formato YYYY-MM-DD
   const getCurrentDate = () => {
@@ -77,152 +58,6 @@ export default function IotSecNew() {
     teste_gravacoes: "Sim",
     problemas: "Nenhum problema identificado.",
     recomendacoes: "Nenhuma recomendação específica.",
-    fotos: null as FileList | null,
-  });
-
-  const [formDataEntrega, setFormDataEntrega] = useState({
-    // Seção 1: Dados do Cliente e Projeto
-    cliente_nome: "",
-    cliente_empresa: "",
-    cliente_contato: "",
-    endereco_servico: "",
-    numero_contrato: "",
-    data_entrega: getCurrentDate(),
-
-    // Seção 2: Descrição do Serviço
-    descricao_servico: "",
-    servicos_realizados: {
-      cftv: false,
-      controle_acesso: false,
-      cerca_eletrica: false,
-      alarme: false,
-      automacao: false,
-      infraestrutura: false,
-    },
-    outros_servicos: "",
-
-    // Seção 3: Equipamentos Instalados
-    equipamentos: [
-      {
-        nome: "",
-        modelo: "",
-        quantidade: "",
-        serie: "",
-        obs: "",
-      },
-    ],
-
-    // Seção 4: Materiais de Infraestrutura
-    materiais: [
-      {
-        tipo: "",
-        quantidade: "",
-        obs: "",
-      },
-    ],
-
-    // Seção 5: Testes e Funcionamento
-    testes_realizados: "",
-    equipamentos_testados: "",
-    resultado_testes: "",
-    tem_falha: false,
-    descricao_falha: "",
-
-    // Seção 6: Condições no Local
-    condicoes_ambiente: "",
-    restricoes_encontradas: "",
-    observacoes_adicionais: "",
-
-    // Seção 7: Termos e Garantia
-    concorda_garantia: false,
-
-    // Seção 8: Responsável pela Execução
-    tecnico_nome: "",
-    tecnico_contato: "",
-    data_preenchimento: getCurrentDate(),
-
-    // Seção 9: Anexos
-    fotos: null as FileList | null,
-  });
-
-  const [formDataOrcamento, setFormDataOrcamento] = useState({
-    // Seção 1: Dados do Cliente
-    cliente_responsavel: "",
-    empresa_condominio: "",
-    endereco_servico: "",
-    contato: "",
-
-    // Seção 2: Escopo do Projeto
-    tipo_servico: "",
-    tecnologias: {
-      cftv: false,
-      controle_acesso: false,
-      cerca_eletrica: false,
-      alarme: false,
-      automacao: false,
-      interfonia: false,
-    },
-    outras_tecnologias: "",
-    descricao_projeto: "",
-
-    // Seção 3: Infraestrutura
-    tipo_infraestrutura: "",
-    materiais_infraestrutura: {
-      eletroduto: false,
-      curvas_luvas: false,
-      canaletas: false,
-      caixas_passagem: false,
-      suportes: false,
-      fixadores: false,
-      tubo_enterrado: false,
-    },
-    outros_materiais: "",
-    observacoes_infraestrutura: "",
-
-    // Seção 4: Equipamentos e Dispositivos
-    equipamentos_previstos: "",
-    tipo_alimentacao: {
-      poe: false,
-      fonte_12v_24v: false,
-      bateria_nobreak: false,
-      disjuntor_dedicado: false,
-    },
-    outras_alimentacoes: "",
-
-    // Seção 5: Rede e Energia
-    tipos_cabos: {
-      coaxial: false,
-      cabo_rede: false,
-      fibra_optica: false,
-      cabos_energia: false,
-      cabos_automacao: false,
-    },
-    outros_cabos: "",
-    pontos_energia: "",
-    protecoes_eletricas: {
-      disjuntor_dedicado: false,
-      nobreak: false,
-      filtro_linha: false,
-      nao_se_aplica: false,
-    },
-
-    // Seção 6: Serviços Incluídos
-    servicos_entregues: {
-      projeto_tecnico: false,
-      fornecimento_materiais: false,
-      mao_obra: false,
-      testes_comissionamento: false,
-      treinamento: false,
-      documentacao_tecnica: false,
-    },
-
-    // Seção 7: Observações Técnicas
-    infraestrutura_eletrica_pronta: "",
-    dependencia_terceiros: "",
-    acesso_livre_local: "",
-    observacoes_gerais: "",
-
-    // Anexos
     fotos: null as FileList | null,
   });
 
@@ -378,7 +213,7 @@ export default function IotSecNew() {
                   <p className="text-gray-400 text-xs">{user?.email}</p>
                 </div>
               </div>
-              
+
               {/* Logout Button */}
               <button
                 onClick={() => {

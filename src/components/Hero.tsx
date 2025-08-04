@@ -1,5 +1,3 @@
-import React from "react";
-
 const Hero = () => {
   const scrollToContact = () => {
     const element = document.getElementById("contato");
